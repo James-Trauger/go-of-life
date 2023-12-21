@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -35,29 +36,30 @@ func main() {
 	// process the rest of the command line arguments
 	inputFile := os.Args[1]
 	outputFile := os.Args[2]
-	xDim, xErr := strconv.Atoi(os.Args[3])
-	yDim, yErr := strconv.Atoi(os.Args[4])
+	xdim, xErr := strconv.Atoi(os.Args[3])
+	ydim, yErr := strconv.Atoi(os.Args[4])
 
 	if xErr != nil || yErr != nil {
-		fmt.Println("invalid x and y board dimensions: x= " + os.Args[3] + "  |  y=" + os.Args[4])
+		fmt.Println("invalid x and y board ydimensions: x= " + os.Args[3] + "  |  y=" + os.Args[4])
 	}
 
 	/** **/
 
 	// keep the previous state of the board
-	var prev_life [][]int = make([][]int, xDim+2)
-	var life [][]int = make([][]int, yDim)
-	for i := 0; i < xDim; i++ {
-		prev_life[i] = make([]int, yDim+2)
-		life[i] = make([]int, yDim)
+	var prev_life [][]int = make([][]int, xdim+2)
+	var life [][]int = make([][]int, ydim)
+	for i := 0; i < xdim; i++ {
+		prev_life[i] = make([]int, ydim+2)
+		life[i] = make([]int, ydim)
 	}
 	// initialize last 2 rows of prev_life
-	prev_life[xDim] = make([]int, yDim+2)
-	prev_life[xDim+1] = make([]int, yDim+2)
+	prev_life[xdim] = make([]int, ydim+2)
+	prev_life[xdim+1] = make([]int, ydim+2)
 
-	readBoard(&life, xDim, yDim, inputFile)
-	fmt.Printf("value at %d,%d is %d\n", 27, 16, life[27][16])
-	fmt.Printf("input=%s, output=%s, X=%d, Y=%d, procs=%d\n", inputFile, outputFile, xDim, yDim, *procs)
+	readBoard(&life, xdim, ydim, inputFile)
+	writeBoard(&life, xdim, ydim, outputFile)
+	//fmt.Printf("value at %d,%d is %d\n", 27, 16, life[27][16])
+	//fmt.Printf("input=%s, output=%s, X=%d, Y=%d, procs=%d\n", inputFile, outputFile, xdim, ydim, *procs)
 }
 
 /*
@@ -69,7 +71,7 @@ i.e.
 	2,65
 	...
 */
-func readBoard(board *[][]int, xDim int, yDim int, path string) {
+func readBoard(board *[][]int, xdim int, ydim int, path string) {
 
 	input, err := os.Open(path)
 	defer input.Close()
@@ -95,11 +97,11 @@ func readBoard(board *[][]int, xDim int, yDim int, path string) {
 			fmt.Printf("invalid line format on line %d. Must be in the format: x,y where x and y are integers\nfound: %s\n", lineNum, line)
 			os.Exit(1)
 		}
-		// validate coordinate dimensions. Coordinates are 0-indexed
-		if x < 0 || x > xDim-1 || y < 0 || y > yDim-1 {
+		// validate coordinate ydimensions. Coordinates are 0-indexed
+		if x < 0 || x > xdim-1 || y < 0 || y > ydim-1 {
 			fmt.Printf(`invalid board coordinate: %d,%d
 Must be 0-indexed and within the bounds(exclusive): %dx%d
-			`, x, y, xDim, yDim)
+			`, x, y, xdim, ydim)
 			fmt.Println(xErr.Error())
 			fmt.Println(yErr.Error())
 			os.Exit(1)
@@ -108,5 +110,25 @@ Must be 0-indexed and within the bounds(exclusive): %dx%d
 		// copy the coordinate into the life array
 		(*board)[x][y] = 1
 		lineNum++
+	}
+}
+
+func writeBoard(board *[][]int, xdim int, ydim int, output_file string) {
+	// create the file
+	output, err := os.Create(output_file + ".csv")
+	defer output.Close()
+	if err != nil {
+		log.Fatalf("failed creating file: %s", err)
+	}
+
+	// write the file in row major order
+	// iterate over each row and print only 1s
+	for i := 0; i < xdim; i++ {
+		for j := 0; j < ydim; j++ {
+			if (*board)[i][j] == 1 {
+				// write the record
+				fmt.Fprintf(output, "%d,%d\n", i, j)
+			}
+		}
 	}
 }
