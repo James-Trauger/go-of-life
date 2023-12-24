@@ -9,45 +9,52 @@ import (
 	"strconv"
 )
 
-const USAGE = "serial [inputFile.txt] [outputFile] [board_size_X] [board_size_Y] [num_processes]"
+const USAGE = "serial [inputFile.txt] [outputFile] [board_size_X] [board_size_Y] [generations] [num_processes]"
 
 func main() {
 
 	/** Validating command line arguments **/
 
 	var default_procs int = 1
-	// check command line arguments
-	var procs *int = &default_procs
 	// default number of processes is 1
 	var numArgs int = len(os.Args)
-	if numArgs < 5 || numArgs > 6 {
+	if numArgs < 6 || numArgs > 7 {
 		fmt.Println(USAGE)
 		return
 	}
-	// process the number of processes
-	if numArgs == 6 {
-		numprocs, procerror := strconv.Atoi(os.Args[5])
-		if procerror != nil {
-			fmt.Println("did not pass valid num_process argument: " + os.Args[5])
+
+	procs := func() int {
+		if numArgs == 7 {
+			numprocs, procerr := strconv.Atoi(os.Args[6])
+			if procerr != nil {
+				fmt.Printf("\"%s\" is not pass valid number of processors\n", os.Args[6])
+				os.Exit(2)
+			}
+			return numprocs
 		} else {
-			*procs = numprocs
+			return default_procs
 		}
-	}
+	}()
+
 	// process the rest of the command line arguments
 	inputFile := os.Args[1]
 	outputFile := os.Args[2]
+
 	xdim, xErr := strconv.Atoi(os.Args[3])
 	ydim, yErr := strconv.Atoi(os.Args[4])
-
 	if xErr != nil || yErr != nil {
 		fmt.Println("invalid x and y board ydimensions: x= " + os.Args[3] + "  |  y=" + os.Args[4])
 	}
 
-	/** **/
+	generations, generr := strconv.Atoi(os.Args[5])
+	if generr != nil {
+		fmt.Printf("\"%s\" is not a valid number of generations\n", os.Args[5])
+	}
 
 	// keep the previous state of the board
 	var prev_life [][]int = make([][]int, xdim+2)
 	var life [][]int = make([][]int, ydim)
+	// initialize every row
 	for i := 0; i < xdim; i++ {
 		prev_life[i] = make([]int, ydim+2)
 		life[i] = make([]int, ydim)
@@ -57,9 +64,13 @@ func main() {
 	prev_life[xdim+1] = make([]int, ydim+2)
 
 	readBoard(&life, xdim, ydim, inputFile)
+
+	// run throught the board for the specified number of generations
+	//for := range()
+
 	writeBoard(&life, xdim, ydim, outputFile)
 	//fmt.Printf("value at %d,%d is %d\n", 27, 16, life[27][16])
-	//fmt.Printf("input=%s, output=%s, X=%d, Y=%d, procs=%d\n", inputFile, outputFile, xdim, ydim, *procs)
+	fmt.Printf("input=%s, output=%s, X=%d, Y=%d, generations=%d, procs=%d\n", inputFile, outputFile, xdim, ydim, generations, procs)
 }
 
 /*
