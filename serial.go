@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 const USAGE = "serial [inputFile.txt] [outputFile] [board_size_X] [board_size_Y] [generations] [num_processes]"
@@ -62,15 +63,22 @@ func main() {
 	// initialize last 2 rows of prev_life
 	prev_life[xdim] = make([]int, ydim+2)
 	prev_life[xdim+1] = make([]int, ydim+2)
+	for i := xdim; i < xdim+2; i++ {
+		for j := ydim; j < ydim+2; j++ {
+			prev_life[i][j] = 0
+		}
+	}
 
 	readBoard(&life, xdim, ydim, inputFile)
 
+	start := time.Now()
 	// run throught the board for the specified number of generations
-	//for := range()
-
+	for i := 0; i < generations; i++ {
+		compute(&life, &prev_life, xdim, ydim)
+	}
+	runtime := time.Since(start)
 	writeBoard(&life, xdim, ydim, outputFile)
-	//fmt.Printf("value at %d,%d is %d\n", 27, 16, life[27][16])
-	fmt.Printf("input=%s, output=%s, X=%d, Y=%d, generations=%d, procs=%d\n", inputFile, outputFile, xdim, ydim, generations, procs)
+	fmt.Printf("%d processors took %.4f s\n", procs, runtime.Seconds())
 }
 
 /*
@@ -139,6 +147,36 @@ func writeBoard(board *[][]int, xdim int, ydim int, output_file string) {
 			if (*board)[i][j] == 1 {
 				// write the record
 				fmt.Fprintf(output, "%d,%d\n", i, j)
+			}
+		}
+	}
+}
+
+func compute(life *[][]int, prevlife *[][]int, xdim int, ydim int) {
+	// store life into previous life
+	for i := 0; i < xdim; i++ {
+		for j := 0; j < ydim; j++ {
+			(*prevlife)[i+1][j+1] = (*life)[i][j]
+		}
+	}
+
+	// compute the neighbors
+	for i := 1; i < xdim+1; i++ {
+		for j := 1; j < ydim+1; j++ {
+			var neighbors int = (*prevlife)[i-1][j-1] + (*prevlife)[i-1][j] + (*prevlife)[i-1][j+1] +
+				(*prevlife)[i][j-1] + (*prevlife)[i][j+1] +
+				(*prevlife)[i+1][j-1] + (*prevlife)[i+1][j] + (*prevlife)[i+1][j+1]
+
+			// new cells are born when they have 3 neighbors
+			if (*prevlife)[i][j] == 0 {
+				if neighbors == 3 {
+					(*life)[i-1][j-1] = 1
+				}
+			} else {
+				// a cell survives when it has 2 or 3 neighbors
+				if neighbors < 2 || neighbors > 3 {
+					(*life)[i-1][j-1] = 0
+				}
 			}
 		}
 	}
